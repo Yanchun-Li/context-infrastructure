@@ -20,7 +20,7 @@
 - ⚙️ Share Report — 需要 SSH 服务器或 GitHub Pages
 - ⚙️ Google Docs — 需要 Google OAuth
 - ⚙️ Send Email — 需要 Gmail App Password
-- ⚙️ Delayed Execution — 适配你自己的工具路径
+- ⚙️ Delayed Execution — starter fallback；durable/AI 延时任务安装 Process Launcher + OpenCode Skill
 
 ### Tier 3: 独立 public skill repos（按需安装）
 - 🔧 图片生成、Tavily、Google Docs、Outlook、Resend、OpenCode、Process Launcher、PPTX、Typefully、Stripe 等能力见 [`docs/SKILL_ECOSYSTEM.md`](../../docs/SKILL_ECOSYSTEM.md)
@@ -65,7 +65,7 @@
 - [语义搜索技能](./semantic_search.md) ⚙️ — 利用向量相似度检索深层背景与观点演变
 - [知识飞轮设计模式](./workflow_knowledge_flywheel.md) — 笨数据+笨方法+笨模型=精知识
 - [视频下载与语音识别工作流](./workflow_bilibili_whisper_transcription.md) — Bilibili/YouTube 视频处理
-- [延时执行技能](./delayed_execution.md) ⚙️ — 定时任务：sleep + 后台执行，或 OpenCode API 智能任务
+- [延时执行技能](./delayed_execution.md) ⚙️ — 低风险 `sleep + nohup` fallback；durable/AI 延时任务见 ecosystem 的 Process Launcher + OpenCode Skill
 - [项目脚手架与重整](./project_scaffold.md) ✅ — 把散装目录升级成标准项目结构：`docs/`、`src/`、`scripts/`、`tests/`、`AGENTS.md` 与独立 git
 
 ### BestPractice（最佳实践）

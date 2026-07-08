@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
 L2 Reflector Agent (Trigger Script)
-Instructs OpenCode-Builder to perform memory garbage collection directly on the file.
+Hands a self-contained prompt to `claude -p` to perform memory garbage collection.
 """
 import os
-import sys
-from opencode_client import OpenCodeClient
 from datetime import datetime
+from pathlib import Path
+from claude_client import run_claude, DEFAULT_MODEL
 
-KNOWLEDGE_BASE = "/path/to/your/workspace/periodic_jobs/ai_heartbeat/docs/KNOWLEDGE_BASE.md"
+WORKSPACE = os.getenv("CLAUDE_PROJECT_ROOT") or str(Path(__file__).resolve().parents[4])
+KNOWLEDGE_BASE = os.path.join(WORKSPACE, "periodic_jobs", "ai_heartbeat", "docs", "KNOWLEDGE_BASE.md")
 
 PROMPT_TEMPLATE = """
 执行记忆系统的"反思与晋升"任务。
@@ -16,7 +17,7 @@ PROMPT_TEMPLATE = """
 SOP: {kb_path}
 
 步骤：
-1. 读取 /contexts/memory/OBSERVATIONS.md，分析 🔴 和高优 🟡 条目
+1. 读取 {workspace}/contexts/memory/OBSERVATIONS.md，分析 🔴 和高优 🟡 条目
 2. 将具有普适性的内容晋升到 rules/，按职责边界分类：
    - SOUL.md: Agent 身份与核心价值观
    - USER.md: 用户画像与人生哲学
@@ -29,30 +30,29 @@ SOP: {kb_path}
 完成后回复简短晋升汇报。
 """
 
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='L2 Reflector Agent')
-    parser.add_argument('--model', default='<your-model-id>',
-                        choices=['<your-model-id>'],
-                        help='Model ID to use')
+    parser.add_argument('--model', default=DEFAULT_MODEL,
+                        help=f'Claude model id (default: {DEFAULT_MODEL})')
     args = parser.parse_args()
-    
+
     model_id = args.model
     target_date = datetime.now().strftime("%Y-%m-%d")
 
-    print(f"Triggering Fully Agentic Reflector using model: {model_id}...")
-    client = OpenCodeClient()
-    
-    session_id = client.create_session(f"Heartbeat L2 Reflector - {target_date}")
-    if not session_id:
+    print(f"Triggering Fully Agentic Reflector ({target_date}) using model: {model_id}...")
+    prompt = PROMPT_TEMPLATE.format(kb_path=KNOWLEDGE_BASE, workspace=WORKSPACE)
+    output = run_claude(prompt, model_id=model_id)
+    if output is None:
+        print("Reflector run failed.")
         return
-        
-    prompt = PROMPT_TEMPLATE.format(kb_path=KNOWLEDGE_BASE)
-    client.send_message(session_id, prompt, model_id=model_id)
-    # If send_message timed out, agent may still be running; poll until done
-    print("Waiting for session to complete (sync mode)...")
-    client.wait_for_session_complete(session_id)
-    print(f"Task complete (Session: {session_id}).")
+    print("Reflector run complete.")
+    if output.strip():
+        tail = output.strip().splitlines()[-20:]
+        print("--- promotion report (tail) ---")
+        print("\n".join(tail))
+
 
 if __name__ == "__main__":
     main()

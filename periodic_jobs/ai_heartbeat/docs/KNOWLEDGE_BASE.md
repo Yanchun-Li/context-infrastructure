@@ -6,7 +6,7 @@
 - **信息密度**：你要像一个资深的架构师一样思考。如果一条信息在未来 3 个月内不会对你或你的主人产生任何复用价值，那就果断丢弃。宁可少记，绝不凑数。
 
 ## 1. 核心执行准则 (The Agentic Way)
-- **ROOT_DIR**: 所有的路径引用均相对于项目根目录 (`/path/to/your/workspace/`)。
+- **ROOT_DIR**: 观测根目录（SCAN_ROOT）与记忆仓库根目录（WORKSPACE）由触发 prompt 动态传入。SCAN_ROOT 可以比 WORKSPACE 更宽（例如覆盖整个 Projects 目录），但所有写入只发生在 WORKSPACE 内。
 - **文件持久化**: 你不仅仅是回答问题。你的最终交付物是修改文件。
 - **自主加载**: 你必须先加载以下全局约束，确保你的行为与项目哲学一致：
   - `AGENTS.md` (工作区全局视图)
@@ -25,7 +25,14 @@
 
 ### 2.3 路径白名单与黑名单
 - **忽略**: `contexts/daily_records/` (机械重复性数据)。
-- **包含**: `contexts/life_record/` 及其子目录下的 `.csv` 文件。
+- **忽略（跨项目扫描时）**: 构建产物与依赖目录——`node_modules/`、`.venv/`、`__pycache__/`、`dist/`、`build/`、`.git/` 内部对象、`.DS_Store`、日志文件。
+- **包含**: `contexts/life_record/` 及其子目录下的 `.csv` 文件（若存在）。
+
+### 2.4 Claude Code Session 观测
+- **来源**: Session 记录目录由 prompt 传入（通常为 `~/.claude/projects/`），每个子目录对应一个项目，内含 `.jsonl` 会话文件。
+- **采样而非通读**: 单个 `.jsonl` 可达几十 MB。只用 `find -mtime` 定位当日活跃的会话，再用 `head`/`tail`/`grep` 抽取用户消息与关键结论。
+- **提炼目标**: 回答"当天在哪些项目上做了什么、做了什么决策、遇到什么反复出现的模式"，而非复述对话内容。
+- **隐私约束**: 观测记录中不要大段复制会话原文；涉及密钥、令牌等敏感串一律不落盘。
 
 ## 3. 记忆系统分级规范 (Memory Tiering System)
 

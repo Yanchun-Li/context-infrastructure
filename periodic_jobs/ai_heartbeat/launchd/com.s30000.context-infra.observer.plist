@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.s30000.context-infra.observer</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>-B</string>
+    <string>/Users/s30000/Projects/context-infrastructure/periodic_jobs/ai_heartbeat/src/v0/observer.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/s30000/Projects/context-infrastructure</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- claude CLI は ~/.local/bin にある。dotenv 未インストールのため .env は
+         ロードされない — 必要な env はここで直接与える。 -->
+    <key>PATH</key>
+    <string>/Users/s30000/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>CLAUDE_BIN</key>
+    <string>/Users/s30000/.local/bin/claude</string>
+    <key>CLAUDE_PROJECT_ROOT</key>
+    <string>/Users/s30000/Projects/context-infrastructure</string>
+    <!-- 观测范围：整个 Projects 目录 + Claude Code session 记录。
+         记忆写入仍然只发生在 CLAUDE_PROJECT_ROOT 内。 -->
+    <key>OBSERVER_SCAN_ROOT</key>
+    <string>/Users/s30000/Projects</string>
+    <key>OBSERVER_SESSION_ROOT</key>
+    <string>/Users/s30000/.claude/projects</string>
+  </dict>
+
+  <!-- 每天 08:00。Mac 睡眠时错过的触发会在唤醒时补跑一次。 -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>8</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+
+  <!-- 关机错过 08:00 时靠登录补跑；observer 对同一日期幂等（已有 Date 条目则跳过），
+       所以每次登录跑一次是安全的。 -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/observer.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/observer.log</string>
+</dict>
+</plist>

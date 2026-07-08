@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.s30000.context-infra.reflector</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>-B</string>
+    <string>/Users/s30000/Projects/context-infrastructure/periodic_jobs/ai_heartbeat/src/v0/reflector.py</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/s30000/Projects/context-infrastructure</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/s30000/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>CLAUDE_BIN</key>
+    <string>/Users/s30000/.local/bin/claude</string>
+    <key>CLAUDE_PROJECT_ROOT</key>
+    <string>/Users/s30000/Projects/context-infrastructure</string>
+  </dict>
+
+  <!-- 每周一 09:00。睡眠错过会在唤醒时补跑；关机错过则等下周
+       （reflector 无幂等保护，不能加 RunAtLoad，否则每次登录都会
+       重写 OBSERVATIONS.md 并产生 LLM 成本）。 -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key><integer>1</integer>
+    <key>Hour</key><integer>9</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/reflector.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/reflector.log</string>
+</dict>
+</plist>

@@ -1,36 +1,30 @@
 #!/usr/bin/env python3
-import os
-import time
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime
 import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 try:
-    from opencode_client import OpenCodeClient
+    from claude_client import run_claude, DEFAULT_MODEL
 except ImportError:
-    print("Error: Could not import OpenCodeClient. Ensure path is correct.")
+    print("Error: Could not import claude_client. Ensure path is correct.")
     sys.exit(1)
 
-def run_ai_news_survey(mode="weekly", model_id="anthropic/claude-opus-4-6", publish_to_kit=False):
+def run_ai_news_survey(mode="weekly", model_id=DEFAULT_MODEL, publish_to_kit=False):
     """
-    Delegates the AI News Survey and personalized report generation to the OpenCode Agent.
+    Delegates the AI News Survey and personalized report generation to `claude -p`.
     Uses axiom-based evaluation framework for evidence-tiered, builder-focused reporting.
-    
+
     Args:
         mode: "weekly" (7 days) or "daily" (1 day)
-        model_id: OpenCode model ID to use
+        model_id: Claude model id (without provider prefix)
         publish_to_kit: If True, publish newsletter to Kit subscribers instead of personal email
     """
-    client = OpenCodeClient()
-    
     date_str = datetime.now().strftime('%Y/%m/%d')
     date_file = datetime.now().strftime('%Y%m%d')
     
     if mode == "daily":
-        days_back = 1
-        session_title = f"Daily AI News {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         report_filename = f"daily_ai_newsletter_{date_file}.md"
         report_path = f"contexts/survey_sessions/daily_ai_newsletter/{report_filename}"
         report_title = "AI 日报"
@@ -38,20 +32,12 @@ def run_ai_news_survey(mode="weekly", model_id="anthropic/claude-opus-4-6", publ
         days_desc = "1 天"
         max_lines = 100
     else:
-        days_back = 7
-        session_title = f"Autonomous AI News Survey {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         report_filename = f"ai_news_weekly_{date_file}.md"
         report_path = f"contexts/survey_sessions/{report_filename}"
         report_title = "AI 周报"
         period_desc = "本周"
         days_desc = "7 天"
         max_lines = 300
-    
-    session_id = client.create_session(session_title)
-    
-    if not session_id:
-        print("Failed to create OpenCode session.")
-        return
 
     if publish_to_kit:
         delivery_instruction = f"""### Phase 6：交付
@@ -194,34 +180,26 @@ def run_ai_news_survey(mode="weekly", model_id="anthropic/claude-opus-4-6", publ
 
 请开始执行。
 """
-    print(f"Triggering {mode} news survey in OpenCode (Session: {session_id})...")
-    print(f"Using model: {model_id}")
+    print(f"Triggering {mode} news survey via claude -p (model: {model_id})...")
     if publish_to_kit:
         print("Publish mode: Kit subscribers")
-    
-    result = client.send_message(session_id, prompt, model_id=model_id)
 
-    if not result:
-        print("No immediate response from server. Sending continuation ping...")
-        result = client.send_message(session_id, "继续", model_id=model_id)
-    
-    if result:
-        client.wait_for_session_complete(session_id)
-        messages = client.get_session_messages(session_id) or []
-        assistants = [m for m in messages if (m.get("info") or {}).get("role") == "assistant"]
-        if assistants:
-            last_info = assistants[-1].get("info") or {}
-            print(f"Resolved model: {last_info.get('providerID')}/{last_info.get('modelID')}")
-        print(f"{report_title} complete.")
-    else:
-        print("Failed to start survey session.")
+    output = run_claude(prompt, model_id=model_id)
+    if output is None:
+        print("Failed to complete survey.")
+        return
+    print(f"{report_title} complete.")
+    if output.strip():
+        tail = output.strip().splitlines()[-30:]
+        print("--- agent walkthrough (tail) ---")
+        print("\n".join(tail))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run AI news survey (daily or weekly)")
     parser.add_argument("--mode", "-m", choices=["daily", "weekly"], default="weekly",
                         help="Survey mode: 'daily' (1 day) or 'weekly' (7 days, default)")
-    parser.add_argument("--model", "-M", default="anthropic/claude-opus-4-6",
-                        help="OpenCode model ID (default: anthropic/claude-opus-4-6)")
+    parser.add_argument("--model", "-M", default=DEFAULT_MODEL,
+                        help=f"Claude model id (default: {DEFAULT_MODEL})")
     parser.add_argument("--publish-to-kit", "-k", action="store_true",
                         help="Publish newsletter to Kit subscribers instead of personal email")
     args = parser.parse_args()

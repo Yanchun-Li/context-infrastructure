@@ -12,41 +12,28 @@ Usage:
 """
 
 import argparse
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 try:
-    from opencode_client import OpenCodeClient
+    from claude_client import run_claude, DEFAULT_MODEL
 except ImportError:
-    print("Error: Could not import OpenCodeClient. Ensure path is correct.")
+    print("Error: Could not import claude_client. Ensure path is correct.")
     sys.exit(1)
-
-
-DEFAULT_MODEL = "anthropic/claude-opus-4-6"
 
 
 def run_daily_newsletter(date_str: str, dry_run: bool = False, model_id: str = DEFAULT_MODEL):
     """
-    Triggers a newsletter generation session in OpenCode.
+    Triggers a newsletter generation session via `claude -p`.
 
     Args:
         date_str: Date in YYYYMMDD format (e.g. "20260301")
         dry_run: If True, generate newsletter file but skip Kit publish
-        model_id: OpenCode model ID to use
+        model_id: Claude model id (without provider prefix)
     """
-    client = OpenCodeClient()
-
     date_display = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}"
-    session_title = f"Daily Newsletter {date_display}"
-    session_id = client.create_session(session_title)
-
-    if not session_id:
-        print("Failed to create OpenCode session.")
-        return
-
     chat_csv = f"periodic_jobs/ai_heartbeat/daily_messages/{date_str}.csv"
     output_path = f"contexts/survey_sessions/daily_ai_newsletter/ai_frontline_{date_str}.md"
 
@@ -307,29 +294,21 @@ source periodic_jobs/ai_heartbeat/.venv/bin/activate && \\
 {publish_step}
 """
 
-    print(f"Triggering daily newsletter for {date_display} (Session: {session_id})...")
-    print(f"Model: {model_id}")
+    print(f"Triggering daily newsletter for {date_display} via claude -p (model: {model_id})...")
     print(f"Chat CSV: {chat_csv}")
     print(f"Output: {output_path}")
     if dry_run:
         print("Mode: dry-run (no Kit publish)")
 
-    result = client.send_message(session_id, prompt, model_id=model_id)
-
-    if not result:
-        print("No immediate response from server. Sending continuation ping...")
-        result = client.send_message(session_id, "继续", model_id=model_id)
-
-    if result:
-        client.wait_for_session_complete(session_id)
-        messages = client.get_session_messages(session_id) or []
-        assistants = [m for m in messages if (m.get("info") or {}).get("role") == "assistant"]
-        if assistants:
-            info = assistants[-1].get("info") or {}
-            print(f"Resolved model: {info.get('providerID')}/{info.get('modelID')}")
-        print(f"Newsletter for {date_display} complete.")
-    else:
-        print("Failed to start newsletter session.")
+    output = run_claude(prompt, model_id=model_id)
+    if output is None:
+        print("Failed to complete newsletter session.")
+        return
+    print(f"Newsletter for {date_display} complete.")
+    if output.strip():
+        tail = output.strip().splitlines()[-30:]
+        print("--- agent walkthrough (tail) ---")
+        print("\n".join(tail))
 
 
 if __name__ == "__main__":
@@ -342,7 +321,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model", "-M",
         default=DEFAULT_MODEL,
-        help=f"OpenCode model ID (default: {DEFAULT_MODEL})",
+        help=f"Claude model id (default: {DEFAULT_MODEL})",
     )
     parser.add_argument(
         "--dry-run", "-n",

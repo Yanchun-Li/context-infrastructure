@@ -1,31 +1,18 @@
 #!/usr/bin/env python3
-import os
-import time
 from datetime import datetime
 import sys
 from pathlib import Path
 
-# Add the parent directory to sys.path to import OpenCodeClient
 sys.path.append(str(Path(__file__).parent.parent))
 try:
-    from opencode_client import OpenCodeClient
+    from claude_client import run_claude, DEFAULT_MODEL
 except ImportError:
-    print("Error: Could not import OpenCodeClient. Ensure path is correct.")
+    print("Error: Could not import claude_client. Ensure path is correct.")
     sys.exit(1)
 
-def run_ai_analysis():
-    """
-    Delegates the entire crontab health check process to the OpenCode Agent.
-    """
-    client = OpenCodeClient()
-    session_title = f"Autonomous Crontab Health Check {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-    session_id = client.create_session(session_title)
-    
-    if not session_id:
-        print("Failed to create OpenCode session.")
-        return
 
-    # Proactive and autonomous prompt
+def run_ai_analysis(model_id: str = DEFAULT_MODEL):
+    """Delegate the entire crontab health check to `claude -p`."""
     prompt = f"""
 你是一个系统运维专家，负责维护用户的生产环境。
 现在的任务是：**自主完成对系统当前所有 Crontab 任务的健康审计**。
@@ -52,23 +39,31 @@ def run_ai_analysis():
    - 若脚本 exit 1 或输出问题描述，视为异常。
 
 ### 结果交付逻辑：
-- **一切正常**：如果分析结论是所有任务都在按计划运行且无报错，请回复“一切正常，无需介入”，并且**严禁调用邮件工具**。
+- **一切正常**：如果分析结论是所有任务都在按计划运行且无报错，请回复"一切正常，无需介入"，并且**严禁调用邮件工具**。
 - **发现异常**：如果发现任何潜在风险或明确故障（包括 Crontab 任务异常或录音质量问题），请调用 `python3 tools/send_email_to_myself.py` 发送报警邮件。
   - **邮件标题**：【告警】Crontab 任务异常审计报告（若有录音问题可加「含录音异常」）
   - **邮件内容**：使用现代美观的 HTML 格式。列出有问题的任务、对应的日志实地路径、具体的报错信息快照；若有录音问题，一并列出日期与问题描述。最后给出专家级修复建议。
 
 请开始你的审计工作。
 """
-    print(f"Triggering autonomous analysis in OpenCode (Session: {session_id})...")
-    result = client.send_message(session_id, prompt, model_id="glm-5")
-    
-    if result:
-        client.wait_for_session_complete(session_id)
-        print("Autonomous AI Analysis complete.")
-    else:
-        print("Failed to start analysis session.")
+    print(f"Triggering autonomous crontab audit via claude -p ({datetime.now().strftime('%Y-%m-%d %H:%M')}, model: {model_id})...")
+    output = run_claude(prompt, model_id=model_id)
+    if output is None:
+        print("Autonomous AI Analysis failed.")
+        return
+    print("Autonomous AI Analysis complete.")
+    if output.strip():
+        tail = output.strip().splitlines()[-20:]
+        print("--- audit summary (tail) ---")
+        print("\n".join(tail))
+
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Autonomous Crontab Auditor")
+    parser.add_argument("--model", "-M", default=DEFAULT_MODEL,
+                        help=f"Claude model id (default: {DEFAULT_MODEL})")
+    args = parser.parse_args()
     print("Starting Autonomous Crontab Auditor...")
-    run_ai_analysis()
+    run_ai_analysis(model_id=args.model)
     print("Audit process finished.")

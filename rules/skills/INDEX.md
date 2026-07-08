@@ -93,6 +93,7 @@
 - [AI 辅助调试诊断](./bestpractice_ai_debugging_diagnosis.md) ✅ — "代码改不好"的根因诊断决策树
 - [AI 产品设计原则](./bestpractice_ai_product_design.md) ✅ — 线性聊天 vs 知识工作、感知规则解耦
 - [产品/技术决策逆向工程](./bestpractice_product_decision_analysis.md) ✅ — 从设计空间、约束和 trade-off 分析产品或技术决策
+- [定时任务补跑与幂等性配套](./bestpractice_scheduled_job_idempotency.md) ✅ — 补跑开关(RunAtLoad / Persistent / @reboot)只在任务幂等时开启,两者是同一个设计决策的两半
 
 ---
 
